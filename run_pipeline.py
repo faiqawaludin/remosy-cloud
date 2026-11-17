@@ -10,10 +10,10 @@ DBT_EXEC = shutil.which("dbt") or str(Path(PYTHON_EXEC).parent / "dbt.exe")
 
 
 def run_step(title: str, command: list[str], cwd: Path = BASE_DIR):
-    print(f"\n{'=' * 60}\n[STEP] {title}\n{'=' * 60}")
+    print(f"\n{'=' * 60}\n[STEP] {title}\n{'=' * 60}", flush=True)
     result = subprocess.run(command, cwd=cwd)
     if result.returncode != 0:
-        print(f"\n[ERROR] Pipeline berhenti pada tahap: {title}")
+        print(f"\n[ERROR] Pipeline berhenti pada tahap: {title}", flush=True)
         sys.exit(result.returncode)
 
 
