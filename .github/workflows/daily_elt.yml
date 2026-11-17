@@ -1,0 +1,68 @@
+name: REMOSY Daily ELT Pipeline
+
+on:
+  schedule:
+    # Jalan otomatis setiap hari pukul 01:00 UTC (08:00 WIB)
+    - cron: '0 1 * * *'
+  # Tombol manual untuk mengetes pipeline langsung dari tab Actions di GitHub
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  BQ_LOCATION: US
+
+jobs:
+  run-elt-pipeline:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Cache HuggingFace IndoBERT Model
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: huggingface-indobert-v1
+
+      - name: Install Dependencies (CPU PyTorch + Pipeline)
+        run: |
+          python -m pip install --upgrade pip
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -r requirements.txt
+
+      - name: Authenticate to Google Cloud (Keyless WIF)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Configure dbt Profile
+        run: |
+          mkdir -p ~/.dbt
+          cat << 'EOF' > ~/.dbt/profiles.yml
+          dbt_remosy:
+            target: dev
+            outputs:
+              dev:
+                type: bigquery
+                method: oauth
+                project: "{{ env_var('GCP_PROJECT_ID') }}"
+                dataset: remosy_silver
+                location: "{{ env_var('BQ_LOCATION', 'US') }}"
+                threads: 4
+                timeout_seconds: 300
+          EOF
+
+      - name: Run Full ELT Pipeline (Bronze -> Silver -> IndoBERT -> Gold)
+        run: python run_pipeline.py

@@ -1,7 +1,9 @@
 .venv/
 .env
-credentials/
-*.json
+logs/
 __pycache__/
+*.pyc
 dbt_remosy/target/
+dbt_remosy/dbt_packages/
 dbt_remosy/logs/
+run_daily.bat
