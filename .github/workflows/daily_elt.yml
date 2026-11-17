@@ -2,9 +2,8 @@ name: REMOSY Daily ELT Pipeline
 
 on:
   schedule:
-    # Jalan otomatis setiap hari pukul 01:00 UTC (08:00 WIB)
-    - cron: '0 1 * * *'
-  # Tombol manual untuk mengetes pipeline langsung dari tab Actions di GitHub
+    # Jalan otomatis setiap hari pukul 01:15 UTC (08:15 WIB)
+    - cron: '15 1 * * *'
   workflow_dispatch:
 
 permissions:
