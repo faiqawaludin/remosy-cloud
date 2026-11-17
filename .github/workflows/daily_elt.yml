@@ -58,7 +58,7 @@ jobs:
                 type: bigquery
                 method: oauth
                 project: "{{ env_var('GCP_PROJECT_ID') }}"
-                dataset: remosy_silver
+                dataset: remosy
                 location: "{{ env_var('BQ_LOCATION', 'US') }}"
                 threads: 4
                 timeout_seconds: 300
