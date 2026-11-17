@@ -1,6 +1,9 @@
 name: REMOSY Daily ELT Pipeline
 
 on:
+  push:
+    branches:
+      - main
   schedule:
     # Jalan otomatis setiap hari pukul 01:15 UTC (08:15 WIB)
     - cron: '15 1 * * *'
@@ -13,6 +16,7 @@ permissions:
 env:
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   BQ_LOCATION: US
+  PYTHONUNBUFFERED: "1"
 
 jobs:
   run-elt-pipeline:
