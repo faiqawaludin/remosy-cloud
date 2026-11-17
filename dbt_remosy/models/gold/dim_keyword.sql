@@ -1,3 +1,4 @@
+{{ config(post_hook="ALTER TABLE {{ this }} ADD PRIMARY KEY (keyword_key) NOT ENFORCED") }}
 WITH unique_keywords AS (
     SELECT DISTINCT
         COALESCE(NULLIF(TRIM(keyword), ''), 'Uncategorized') AS keyword_name

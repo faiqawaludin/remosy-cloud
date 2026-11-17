@@ -1,3 +1,14 @@
+{{
+    config(
+        post_hook=[
+            "ALTER TABLE {{ this }} ADD PRIMARY KEY (article_id) NOT ENFORCED",
+            "ALTER TABLE {{ this }} ADD CONSTRAINT fk_news_date FOREIGN KEY (date_key) REFERENCES {{ ref('dim_date') }} (date_key) NOT ENFORCED",
+            "ALTER TABLE {{ this }} ADD CONSTRAINT fk_news_publisher FOREIGN KEY (publisher_key) REFERENCES {{ ref('dim_publisher') }} (publisher_key) NOT ENFORCED",
+            "ALTER TABLE {{ this }} ADD CONSTRAINT fk_news_keyword FOREIGN KEY (keyword_key) REFERENCES {{ ref('dim_keyword') }} (keyword_key) NOT ENFORCED",
+            "ALTER TABLE {{ this }} ADD CONSTRAINT fk_news_sentiment FOREIGN KEY (sentiment_key) REFERENCES {{ ref('dim_sentiment') }} (sentiment_key) NOT ENFORCED"
+        ]
+    )
+}}
 WITH news AS (
     SELECT *
     FROM {{ ref('stg_news') }}

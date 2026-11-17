@@ -1,3 +1,4 @@
+{{ config(post_hook="ALTER TABLE {{ this }} ADD PRIMARY KEY (date_key) NOT ENFORCED") }}
 WITH date_bounds AS (
     SELECT
         COALESCE(MIN(DATE(published_at, 'Asia/Jakarta')), CURRENT_DATE('Asia/Jakarta')) AS min_date,

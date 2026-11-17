@@ -1,3 +1,4 @@
+{{ config(post_hook="ALTER TABLE {{ this }} ADD PRIMARY KEY (sentiment_key) NOT ENFORCED") }}
 SELECT
     TO_HEX(MD5(sentiment_label)) AS sentiment_key,
     sentiment_label,

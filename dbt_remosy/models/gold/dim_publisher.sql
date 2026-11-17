@@ -1,3 +1,4 @@
+{{ config(post_hook="ALTER TABLE {{ this }} ADD PRIMARY KEY (publisher_key) NOT ENFORCED") }}
 WITH unique_publishers AS (
     SELECT DISTINCT
         COALESCE(NULLIF(TRIM(publisher), ''), 'Unknown Publisher') AS publisher_name
