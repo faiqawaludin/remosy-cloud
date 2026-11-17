@@ -1,0 +1,26 @@
+name: 'dbt_remosy'
+version: '1.0.0'
+config-version: 2
+
+# Menghubungkan project ini dengan profil di C:\Users\faiqa\.dbt\profiles.yml
+profile: 'dbt_remosy'
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  dbt_remosy:
+    silver:
+      +schema: silver
+      +materialized: table
+    gold:
+      +schema: gold
+      +materialized: table

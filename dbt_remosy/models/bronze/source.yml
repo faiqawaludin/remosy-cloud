@@ -1,0 +1,8 @@
+version: 2
+
+sources:
+  - name: remosy_bronze
+    schema: remosy_bronze
+    tables:
+      - name: news_raw
+        description: "Data mentah artikel berita hasil scraping Google News & Trafilatura"

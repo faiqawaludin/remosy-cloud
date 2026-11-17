@@ -1,0 +1,55 @@
+version: 2
+
+models:
+  - name: dim_date
+    columns:
+      - name: date_key
+        tests: [unique, not_null]
+
+  - name: dim_publisher
+    columns:
+      - name: publisher_key
+        tests: [unique, not_null]
+
+  - name: dim_keyword
+    columns:
+      - name: keyword_key
+        tests: [unique, not_null]
+
+  - name: dim_sentiment
+    columns:
+      - name: sentiment_key
+        tests: [unique, not_null]
+
+  - name: fct_news_sentiment
+    columns:
+      - name: article_id
+        tests: [unique, not_null]
+      - name: date_key
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_key
+      - name: publisher_key
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_publisher')
+                field: publisher_key
+      - name: keyword_key
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_keyword')
+                field: keyword_key
+      - name: sentiment_key
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_sentiment')
+                field: sentiment_key
