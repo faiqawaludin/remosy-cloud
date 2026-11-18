@@ -24,12 +24,13 @@ if __name__ == "__main__":
         [PYTHON_EXEC, "src/extract/extract_news.py"],
     )
     run_step(
-        "1b. Extract & Load X/Twitter -> Bronze", [sys.executable, "extract_twitter.py"]
+        "1b. Extract & Load X/Twitter -> Bronze",
+        [sys.executable, "src/extract/extract_twitter.py"],
     )
 
     # 2. Transformasi Pembersihan & Deduplikasi ke Silver
     run_step(
-        "2. dbt Silver Transformation (stg_news)",
+        "2. dbt Silver Transformation (silver)",
         [DBT_EXEC, "run", "--select", "silver"],
         cwd=DBT_DIR,
     )

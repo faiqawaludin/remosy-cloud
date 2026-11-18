@@ -35,26 +35,58 @@ CRISIS_KEYWORDS = [
 
 
 def get_unprocessed_news(client: bigquery.Client) -> pd.DataFrame:
-    """Mengambil data bersih dari stg_news yang belum memiliki label sentimen."""
+    """Mengambil data bersih dari stg_mentions yang belum memiliki label sentimen."""
     stg_ref = f"{PROJECT_ID}.{SILVER_DATASET}.{STG_TABLE}"
     sent_ref = f"{PROJECT_ID}.{SILVER_DATASET}.{SENTIMENT_TABLE}"
 
     try:
         client.get_table(sent_ref)
         query = f"""
-            SELECT s.article_id, s.cleaned_text
+            SELECT
+                s.mention_id AS article_id,
+                s.cleaned_text
             FROM `{stg_ref}` s
-            LEFT JOIN `{sent_ref}` n ON s.article_id = n.article_id
+            LEFT JOIN `{sent_ref}` n ON s.mention_id = n.article_id
             WHERE n.article_id IS NULL
+              AND s.cleaned_text IS NOT NULL
+              AND TRIM(s.cleaned_text) != ''
         """
     except NotFound:
-        # Jika tabel news_sentiment belum ada (run pertama), ambil semua dari stg_news
         query = f"""
-            SELECT article_id, cleaned_text
+            SELECT
+                mention_id AS article_id,
+                cleaned_text
             FROM `{stg_ref}`
+            WHERE cleaned_text IS NOT NULL
+              AND TRIM(cleaned_text) != ''
         """
 
     return client.query(query).to_dataframe()
+
+
+def apply_hybrid_logic(
+    text: str, raw_label: str, raw_score: float
+) -> tuple[str, float, bool]:
+    """Menstandarkan label IndoBERT dan menerapkan override untuk isu krisis."""
+    mapping = {
+        "positive": "Positif",
+        "negative": "Negatif",
+        "neutral": "Netral",
+    }
+    label = mapping.get(raw_label.lower(), "Netral")
+    score = float(raw_score)
+    is_overridden = False
+
+    # Override ke Negatif jika mengandung kata kunci krisis institusi (case-insensitive)
+    if label != "Negatif":
+        for pattern in CRISIS_KEYWORDS:
+            if re.search(pattern, text, flags=re.IGNORECASE):
+                label = "Negatif"
+                score = max(score, 0.85)
+                is_overridden = True
+                break
+
+    return label, score, is_overridden
 
 
 def apply_hybrid_logic(

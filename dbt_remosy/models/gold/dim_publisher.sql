@@ -2,7 +2,7 @@
 WITH unique_publishers AS (
     SELECT DISTINCT
         COALESCE(NULLIF(TRIM(publisher), ''), 'Unknown Publisher') AS publisher_name
-    FROM {{ ref('stg_news') }}
+    FROM {{ ref('stg_mentions') }}
 )
 
 SELECT

@@ -3,7 +3,7 @@ WITH date_bounds AS (
     SELECT
         COALESCE(MIN(DATE(published_at, 'Asia/Jakarta')), CURRENT_DATE('Asia/Jakarta')) AS min_date,
         COALESCE(MAX(DATE(published_at, 'Asia/Jakarta')), CURRENT_DATE('Asia/Jakarta')) AS max_date
-    FROM {{ ref('stg_news') }}
+    FROM {{ ref('stg_mentions') }}
 ),
 
 date_spine AS (

@@ -2,7 +2,7 @@
 WITH unique_keywords AS (
     SELECT DISTINCT
         COALESCE(NULLIF(TRIM(keyword), ''), 'Uncategorized') AS keyword_name
-    FROM {{ ref('stg_news') }}
+    FROM {{ ref('stg_mentions') }}
 )
 
 SELECT

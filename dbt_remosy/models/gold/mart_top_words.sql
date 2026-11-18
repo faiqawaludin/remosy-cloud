@@ -1,50 +1,38 @@
-WITH news_with_sentiment AS (
+WITH base AS (
     SELECT
-        DATE(n.published_at, 'Asia/Jakarta') AS published_date_wib,
-        n.keyword,
+        m.published_date_wib,
+        m.platform,
+        m.keyword,
         COALESCE(s.sentiment_label, 'Belum Diproses') AS sentiment_label,
-        n.cleaned_text
-    FROM {{ ref('stg_news') }} n
-    LEFT JOIN (
-        SELECT article_id, sentiment_label
-        FROM {{ source('remosy_silver', 'news_sentiment') }}
-        QUALIFY ROW_NUMBER() OVER (PARTITION BY article_id ORDER BY predicted_at DESC) = 1
-    ) s ON n.article_id = s.article_id
+        LOWER(REGEXP_REPLACE(m.cleaned_text, r'[^a-zA-Z0-9\s]', ' ')) AS clean_body
+    FROM {{ ref('stg_mentions') }} m
+    LEFT JOIN {{ source('remosy_silver', 'news_sentiment') }} s
+        ON m.mention_id = s.article_id
 ),
 
-words_exploded AS (
+words AS (
     SELECT
         published_date_wib,
+        platform,
         keyword,
         sentiment_label,
         word
-    FROM news_with_sentiment,
-    UNNEST(SPLIT(cleaned_text, ' ')) AS word
+    FROM base,
+    UNNEST(SPLIT(clean_body, ' ')) AS word
+    WHERE LENGTH(word) > 3
+      AND word NOT IN (
+          'yang', 'untuk', 'dengan', 'dalam', 'pada', 'dari', 'akan', 'oleh',
+          'atau', 'juga', 'sudah', 'bisa', 'dapat', 'lebih', 'sebagai', 'tidak',
+          'ini', 'itu', 'dan', 'ke', 'di', 'https', 'http', 'com'
+      )
 )
 
 SELECT
     published_date_wib,
+    platform,
     keyword,
     sentiment_label,
     word,
     COUNT(*) AS word_frequency
-FROM words_exploded
-WHERE LENGTH(word) >= 4
-  AND word NOT IN (
-      'yang', 'dan', 'dari', 'ini', 'itu', 'untuk', 'pada', 'dengan', 'adalah',
-      'dalam', 'tidak', 'akan', 'juga', 'atau', 'ada', 'oleh', 'bisa', 'saat',
-      'sebagai', 'tahun', 'tersebut', 'lebih', 'sudah', 'karena', 'serta',
-      'dapat', 'bagi', 'para', 'hingga', 'secara', 'antara', 'menjadi', 'bahwa',
-      'atas', 'hal', 'namun', 'masih', 'jika', 'lain', 'bahkan', 'belum', 'lagi',
-      'baru', 'banyak', 'setiap', 'harus', 'selama', 'telah', 'salah', 'satu',
-      'dua', 'tiga', 'empat', 'lima', 'kami', 'kita', 'mereka', 'dia', 'ia',
-      'anda', 'saya', 'nya', 'pun', 'per', 'tentang', 'seperti', 'melalui',
-      'terhadap', 'menurut', 'kembali', 'tetapi', 'yakni', 'yaitu', 'baca',
-      'berita', 'artikel', 'foto', 'jakarta', 'karawang', 'unsika', 'universitas',
-      'singaperbangsa'
-  )
-GROUP BY
-    published_date_wib,
-    keyword,
-    sentiment_label,
-    word
+FROM words
+GROUP BY 1, 2, 3, 4, 5

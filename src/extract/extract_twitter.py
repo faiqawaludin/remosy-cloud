@@ -1,6 +1,11 @@
+import base64
+import html
 import os
-import subprocess
-from datetime import datetime, timedelta
+import re
+import urllib.parse
+import urllib.request
+import xml.etree.ElementTree as ET
+from datetime import UTC, datetime
 
 import pandas as pd
 from dotenv import load_dotenv
@@ -12,105 +17,133 @@ PROJECT_ID = os.getenv("GCP_PROJECT_ID", "remosy-cloud-dw")
 TABLE_ID = f"{PROJECT_ID}.remosy_bronze.tweets_raw"
 
 
-class TwitterScraper:
-    def __init__(self):
-        self.auth_token = os.getenv("TWITTER_AUTH_TOKEN", "").strip()
+def _decode_bing_url(raw_link: str) -> str:
+    """Mendekode URL asli dari redirect Bing (parameter u=a1<base64>)."""
+    try:
+        parsed = urllib.parse.urlparse(raw_link)
+        qs = urllib.parse.parse_qs(parsed.query)
+        if "u" in qs and qs["u"][0].startswith("a1"):
+            encoded = qs["u"][0][2:]
+            padded = encoded + "=" * (-len(encoded) % 4)
+            return base64.urlsafe_b64decode(padded).decode("utf-8", errors="ignore")
+    except Exception:
+        pass
+    return raw_link
 
-    def get_since_date(self, days=7):
-        return (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
 
-    def scrape(self, query: str, max_items: int = 50) -> pd.DataFrame:
-        if not self.auth_token:
-            print(
-                "[WARNING] TWITTER_AUTH_TOKEN belum diatur. Melewati scraping X/Twitter.",
-                flush=True,
-            )
-            return pd.DataFrame()
+def _clean_html(text: str) -> str:
+    text = html.unescape(text or "")
+    text = re.sub(r"<[^>]+>", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
 
-        print(f"Mencari Tweet untuk kata kunci: '{query}'...", flush=True)
-        since_date = self.get_since_date(days=7)
-        search_query = f"{query} since:{since_date}"
-        filename = "temp_tweets.csv"
 
-        command = (
-            f'npx -y tweet-harvest@2.6.1 -o "{filename}" '
-            f'-s "{search_query}" '
-            f'--tab "LATEST" '
-            f"-l {max_items} "
-            f"--token {self.auth_token}"
+def fetch_bing_x_posts(query: str, label: str, max_items: int = 30) -> list[dict]:
+    encoded_q = urllib.parse.quote(f'site:x.com "{query}"')
+    rss_url = f"https://www.bing.com/search?q={encoded_q}&format=rss"
+    rows = []
+    now_utc = datetime.now(UTC)
+
+    try:
+        req = urllib.request.Request(
+            rss_url,
+            headers={
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                "Accept-Language": "id-ID,id;q=0.9,en-US;q=0.8",
+            },
         )
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            xml_data = resp.read()
 
-        try:
-            process = subprocess.run(
-                command, shell=True, capture_output=True, text=True
+        root = ET.fromstring(xml_data)
+        for item in root.findall(".//item")[:max_items]:
+            raw_link = (item.findtext("link") or "").strip()
+            real_url = _decode_bing_url(raw_link)
+            title = _clean_html(item.findtext("title") or "")
+            desc = _clean_html(item.findtext("description") or "")
+            pub_date = (item.findtext("pubDate") or "").strip()
+
+            match = re.search(
+                r"https?://(?:x|twitter)\.com/([^/]+)/status/(\d+)", real_url
             )
-            output_log = (process.stdout + process.stderr).lower()
+            if not match:
+                continue
 
-            if any(
-                err in output_log
-                for err in ["unauthorized", "invalid token", "rate limit"]
-            ):
-                print(
-                    f"[WARNING] Auth Token X/Twitter kedaluwarsa atau terkena rate limit:\n{output_log[:300]}",
-                    flush=True,
-                )
-                return pd.DataFrame()
+            username = match.group(1)
+            if username.lower() in {"search", "hashtag", "i", "home", "explore"}:
+                continue
 
-            expected_file = os.path.join("tweets-data", filename)
-            if not os.path.exists(expected_file):
-                return pd.DataFrame()
+            full_text = desc if len(desc) > 15 else title
+            if not full_text:
+                continue
 
-            df = pd.read_csv(expected_file)
-            os.remove(expected_file)
-
-            if df.empty:
-                return pd.DataFrame()
-
-            clean_df = pd.DataFrame()
-            clean_df["scraped_at"] = pd.to_datetime(
-                [datetime.utcnow()] * len(df), utc=True
+            rows.append(
+                {
+                    "scraped_at": now_utc,
+                    "created_at": pub_date,
+                    "keyword": label,
+                    "username": username,
+                    "full_text": full_text,
+                    "tweet_url": f"https://x.com/{username}/status/{match.group(2)}",
+                    "likes": 0,
+                    "retweets": 0,
+                }
             )
-            clean_df["created_at"] = df.get("created_at", "").astype(str)
-            clean_df["keyword"] = query
-            clean_df["username"] = (
-                df.get("username", "unknown").fillna("unknown").astype(str)
-            )
-            clean_df["full_text"] = df.get("full_text", "").fillna("").astype(str)
-            clean_df["tweet_url"] = df.get("tweet_url", "").fillna("").astype(str)
-            clean_df["likes"] = (
-                pd.to_numeric(df.get("favorite_count", 0), errors="coerce")
-                .fillna(0)
-                .astype(int)
-            )
-            clean_df["retweets"] = (
-                pd.to_numeric(df.get("retweet_count", 0), errors="coerce")
-                .fillna(0)
-                .astype(int)
-            )
+    except Exception as e:
+        print(f"   [WARNING Bing X Index '{query}']: {e}", flush=True)
 
-            # Buang baris tanpa URL valid
-            clean_df = clean_df[clean_df["tweet_url"] != ""]
-            return clean_df
+    return rows
 
-        except Exception as e:
-            print(f"[WARNING] Error Tweet-Harvest pada '{query}': {e}", flush=True)
-            return pd.DataFrame()
+
+def fetch_google_x_posts(query: str, label: str, max_items: int = 30) -> list[dict]:
+    encoded_q = urllib.parse.quote(f'site:x.com "{query}"')
+    rss_url = f"https://news.google.com/rss/search?q={encoded_q}&hl=id&gl=ID&ceid=ID:id"
+    rows = []
+    now_utc = datetime.now(UTC)
+
+    try:
+        req = urllib.request.Request(
+            rss_url,
+            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"},
+        )
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            xml_data = resp.read()
+
+        root = ET.fromstring(xml_data)
+        for item in root.findall(".//item")[:max_items]:
+            link = (item.findtext("link") or "").strip()
+            title = _clean_html(item.findtext("title") or "")
+            pub_date = (item.findtext("pubDate") or "").strip()
+
+            # Format umum judul Google Index untuk X: "Teks cuitan - Nama (@handle) on X"
+            handle_match = re.search(r"@([A-Za-z0-9_]{1,15})", title)
+            username = handle_match.group(1) if handle_match else "x_public_user"
+            clean_title = re.sub(r"\s*-\s*[^-]+on X$", "", title).strip()
+
+            if not link or not clean_title:
+                continue
+
+            rows.append(
+                {
+                    "scraped_at": now_utc,
+                    "created_at": pub_date,
+                    "keyword": label,
+                    "username": username,
+                    "full_text": clean_title,
+                    "tweet_url": link,
+                    "likes": 0,
+                    "retweets": 0,
+                }
+            )
+    except Exception as e:
+        print(f"   [WARNING Google X Index '{query}']: {e}", flush=True)
+
+    return rows
 
 
 def run_twitter_scraping_job():
     print("Memulai Job Scraping X/Twitter -> BigQuery Bronze...", flush=True)
-    keywords = [
-        "Universitas Singaperbangsa Karawang",
-        "UNSIKA",
-        "Universitas Singaperbangsa",
-        "Unsika",
-        "Unsika Karawang",
-    ]
-
     client = bigquery.Client(project=PROJECT_ID)
-    scraper = TwitterScraper()
 
-    # 1. Cek URL tweet yang sudah tersimpan di Bronze
     try:
         query_existing = f"SELECT DISTINCT tweet_url FROM `{TABLE_ID}`"
         existing_links = set(
@@ -120,31 +153,39 @@ def run_twitter_scraping_job():
     except Exception:
         existing_links = set()
 
-    all_new_dfs = []
+    queries = [
+        ("unsika", "UNSIKA"),
+        ("universitas singaperbangsa karawang", "Universitas Singaperbangsa Karawang"),
+    ]
 
-    for kw in keywords:
-        df = scraper.scrape(kw, max_items=50)
-        print(f"   -> Menarik {len(df)} tweet mentah untuk '{kw}'.", flush=True)
-
-        if not df.empty:
-            df_new = df[~df["tweet_url"].isin(existing_links)].drop_duplicates(
-                subset=["tweet_url"]
-            )
-            if not df_new.empty:
-                existing_links.update(df_new["tweet_url"].tolist())
-                all_new_dfs.append(df_new)
-
-    # 2. Load ke BigQuery Bronze (WRITE_APPEND)
-    if all_new_dfs:
-        final_df = pd.concat(all_new_dfs, ignore_index=True)
-        job_config = bigquery.LoadJobConfig(write_disposition="WRITE_APPEND")
-        job = client.load_table_from_dataframe(
-            final_df, TABLE_ID, job_config=job_config
+    collected = []
+    for q, label in queries:
+        bing_rows = fetch_bing_x_posts(q, label)
+        google_rows = fetch_google_x_posts(q, label)
+        print(
+            f"   -> '{label}': {len(bing_rows)} dari Bing Index, {len(google_rows)} dari Google Index.",
+            flush=True,
         )
+        collected.extend(bing_rows)
+        collected.extend(google_rows)
+
+    if not collected:
+        print("Tidak ada tweet baru yang ditemukan saat ini.", flush=True)
+        return
+
+    df = pd.DataFrame(collected)
+    df["scraped_at"] = pd.to_datetime(df["scraped_at"], utc=True)
+    df_new = df[~df["tweet_url"].isin(existing_links)].drop_duplicates(
+        subset=["tweet_url"]
+    )
+
+    if not df_new.empty:
+        job_config = bigquery.LoadJobConfig(write_disposition="WRITE_APPEND")
+        job = client.load_table_from_dataframe(df_new, TABLE_ID, job_config=job_config)
         job.result()
-        print(f"Berhasil memuat {len(final_df)} tweet BARU ke {TABLE_ID}!", flush=True)
+        print(f"Berhasil memuat {len(df_new)} tweet BARU ke {TABLE_ID}!", flush=True)
     else:
-        print("Tidak ada tweet baru yang perlu dimuat ke Bronze.", flush=True)
+        print("Semua tweet yang ditarik sudah tersimpan di Bronze.", flush=True)
 
 
 if __name__ == "__main__":

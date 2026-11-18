@@ -4,27 +4,44 @@ models:
   - name: dim_date
     columns:
       - name: date_key
-        tests: [unique, not_null]
+        tests:
+          - not_null
+          - unique
+
+  - name: dim_platform
+    columns:
+      - name: platform_key
+        tests:
+          - not_null
+          - unique
 
   - name: dim_publisher
     columns:
       - name: publisher_key
-        tests: [unique, not_null]
+        tests:
+          - not_null
+          - unique
 
   - name: dim_keyword
     columns:
       - name: keyword_key
-        tests: [unique, not_null]
+        tests:
+          - not_null
+          - unique
 
   - name: dim_sentiment
     columns:
       - name: sentiment_key
-        tests: [unique, not_null]
+        tests:
+          - not_null
+          - unique
 
-  - name: fct_news_sentiment
+  - name: fct_mentions_sentiment
     columns:
-      - name: article_id
-        tests: [unique, not_null]
+      - name: mention_id
+        tests:
+          - not_null
+          - unique
       - name: date_key
         tests:
           - not_null
@@ -32,6 +49,13 @@ models:
               arguments:
                 to: ref('dim_date')
                 field: date_key
+      - name: platform_key
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_platform')
+                field: platform_key
       - name: publisher_key
         tests:
           - not_null
