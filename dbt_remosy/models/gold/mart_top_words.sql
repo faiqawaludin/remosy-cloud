@@ -6,7 +6,7 @@ WITH base AS (
         COALESCE(s.sentiment_label, 'Belum Diproses') AS sentiment_label,
         LOWER(REGEXP_REPLACE(m.cleaned_text, r'[^a-zA-Z0-9\s]', ' ')) AS clean_body
     FROM {{ ref('stg_mentions') }} m
-    LEFT JOIN {{ source('remosy_silver', 'news_sentiment') }} s
+    LEFT JOIN {{ source('remosy_silver', 'mentions_sentiment') }} s
         ON m.mention_id = s.article_id
 ),
 

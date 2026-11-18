@@ -108,3 +108,18 @@ Runtime Error
 [0m07:06:32.424693 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'end', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x00000295D9103360>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x00000295D9160DD0>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x00000295D913EF10>]}
 [0m07:06:32.424987 [debug] [MainThread]: Flushing usage events
 [0m07:06:33.794926 [debug] [MainThread]: An error was encountered while trying to flush usage events
+[0m09:41:06.086761 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'start', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x0000011B2D926120>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x0000011B2FFFBED0>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x0000011B2FFFBB10>]}
+
+
+============================== 09:41:06.095208 | 5d076714-d75f-4fa8-a41d-c259c0c6e200 ==============================
+[0m09:41:06.095208 [info ] [MainThread]: Running with dbt=1.12.7
+[0m09:41:06.095920 [debug] [MainThread]: running dbt with arguments {'maximum_seed_size_mib': '1', 'no_print': 'None', 'static_parser': 'True', 'target_path': 'None', 'version_check': 'True', 'warn_error_options': 'WarnErrorOptionsV2(error=[], warn=[], silence=[])', 'printer_width': '80', 'write_json': 'True', 'empty': 'False', 'log_cache_events': 'False', 'introspect': 'True', 'cache_selected_only': 'False', 'log_format': 'default', 'debug': 'False', 'fail_fast': 'False', 'partial_parse': 'True', 'send_anonymous_usage_stats': 'True', 'quiet': 'False', 'warn_error': 'None', 'profiles_dir': 'C:\\Users\\faiqa\\.dbt', 'use_colors': 'True', 'hints_enabled': 'True', 'indirect_selection': 'eager', 'use_experimental_parser': 'False', 'invocation_command': 'dbt run --select gold', 'log_path': 'logs'}
+[0m09:41:06.096402 [error] [MainThread]: [[31mERROR[0m]: Encountered an error:
+Runtime Error
+  No dbt_project.yml found at expected path D:\Data Engineering Course\project\remosy-cloud\dbt_project.yml
+  Verify that each entry within packages.yml (and their transitive dependencies) contains a file named dbt_project.yml
+  
+[0m09:41:06.097282 [debug] [MainThread]: Command `dbt run` failed at 09:41:06.097170 after 0.22 seconds
+[0m09:41:06.097597 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'end', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x0000011B2FFF3360>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x0000011B30050DD0>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x0000011B3002EF10>]}
+[0m09:41:06.097910 [debug] [MainThread]: Flushing usage events
+[0m09:41:07.381761 [debug] [MainThread]: An error was encountered while trying to flush usage events

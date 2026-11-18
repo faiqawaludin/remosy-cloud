@@ -4,5 +4,5 @@ sources:
   - name: remosy_silver
     schema: remosy_silver
     tables:
-      - name: news_sentiment
+      - name: mentions_sentiment
         description: "Hasil inferensi sentimen IndoBERT dan rule-based hybrid logic"

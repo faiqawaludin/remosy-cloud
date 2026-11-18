@@ -11,7 +11,7 @@ WITH mentions AS (
 
 sentiment AS (
     SELECT *
-    FROM {{ source('remosy_silver', 'news_sentiment') }}
+    FROM {{ source('remosy_silver', 'mentions_sentiment') }}
     QUALIFY ROW_NUMBER() OVER (
         PARTITION BY article_id
         ORDER BY predicted_at DESC
