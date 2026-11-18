@@ -17,7 +17,7 @@ Sistem ini dirancang dengan standar rekayasa data modern menggunakan **Medallion
 
 <img width="16384" height="4460" alt="System Architecture drawio" src="https://github.com/user-attachments/assets/b206f1a8-3233-461a-a76b-eb2cb639dfe1" />
 
-## Fitur Utama & Keputusan Teknis
+## Fitur Utama
 
 ### 1. Medallion Architecture di Level Dataset
 Pemisahan lapisan dilakukan di tingkat **BigQuery Dataset** untuk mengisolasi tata kelola akses (IAM), siklus retensi data, serta kejelasan *data lineage*:
