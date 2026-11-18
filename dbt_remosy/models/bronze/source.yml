@@ -6,3 +6,6 @@ sources:
     tables:
       - name: news_raw
         description: "Data mentah artikel berita hasil scraping Google News & Trafilatura"
+      - name: tweets_raw
+        description: "Data mentah hasil scraping X/Twitter"
+  

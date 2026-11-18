@@ -13,7 +13,7 @@ load_dotenv()
 PROJECT_ID = os.getenv("GCP_PROJECT_ID")
 BQ_LOCATION = os.getenv("BQ_LOCATION", "US")
 SILVER_DATASET = "remosy_silver"
-STG_TABLE = "stg_news"
+STG_TABLE = "stg_mentions"
 SENTIMENT_TABLE = "news_sentiment"
 
 # Kata kunci krisis reputasi institusi untuk Rule-Based Hybrid Override

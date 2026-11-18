@@ -23,6 +23,9 @@ if __name__ == "__main__":
         "1. Extract & Load Google News -> Bronze",
         [PYTHON_EXEC, "src/extract/extract_news.py"],
     )
+    run_step(
+        "1b. Extract & Load X/Twitter -> Bronze", [sys.executable, "extract_twitter.py"]
+    )
 
     # 2. Transformasi Pembersihan & Deduplikasi ke Silver
     run_step(

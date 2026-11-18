@@ -17,6 +17,7 @@ env:
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   BQ_LOCATION: US
   PYTHONUNBUFFERED: "1"
+  TWITTER_AUTH_TOKEN: ${{ secrets.TWITTER_AUTH_TOKEN }}
 
 jobs:
   run-elt-pipeline:
